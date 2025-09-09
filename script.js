@@ -1,5 +1,5 @@
 // API 基础URL
-const API_BASE_URL = 'http://127.0.0.1:5000';
+const API_BASE_URL = 'http://127.0.0.1:8130';
 
 // 全局变量
 let refreshInterval;

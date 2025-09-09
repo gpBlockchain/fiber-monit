@@ -93,7 +93,7 @@ class Database:
     def get_all_live_open_channels(self):
         """获取所有open_channels记录，用于检查live状态"""
         conn = self.get_connection()
-        return conn.execute('SELECT * FROM open_channels ORDER BY block_number DESC WHERE status = "live"').fetchall()
+        return conn.execute('SELECT * FROM open_channels WHERE status = "live" ORDER BY block_number DESC').fetchall()
     
     def update_open_channel_status(self, tx_hash, status):
         """更新open_channel的状态"""
@@ -208,6 +208,102 @@ class Database:
             'shutdown': [dict(row) for row in shutdown_channels],
             'closed': [dict(row) for row in closed_channels]
         }
+
+    def get_daily_channel_stats(self, date):
+        """根据日期查询每日open_channel数和shutdown_channel数据"""
+        conn = self.get_connection()
+        
+        # 查询指定日期的open_channels数量
+        # 处理timestamp字段，可能是毫秒时间戳或ISO格式
+        open_count = conn.execute(
+            """SELECT COUNT(*) as count FROM open_channels 
+               WHERE DATE(CASE 
+                   WHEN typeof(timestamp) = 'integer' THEN datetime(timestamp/1000, 'unixepoch')
+                   ELSE timestamp 
+               END) = ?""",
+            (date,)
+        ).fetchone()['count']
+        
+        # 查询指定日期的shutdown_channels数量
+        shutdown_count = conn.execute(
+            """SELECT COUNT(*) as count FROM shutdown_cells 
+               WHERE DATE(CASE 
+                   WHEN typeof(timestamp) = 'integer' THEN datetime(timestamp/1000, 'unixepoch')
+                   ELSE timestamp 
+               END) = ?""",
+            (date,)
+        ).fetchone()['count']
+        
+        conn.close()
+        
+        return {
+            'date': date,
+            'open_channels_count': open_count,
+            'shutdown_channels_count': shutdown_count
+        }
+    
+    def get_date_range_channel_stats(self, start_date, end_date):
+        """查询日期范围内的每日统计数据"""
+        conn = self.get_connection()
+        
+        # 查询日期范围内每日的open_channels数量
+        open_stats = conn.execute(
+            """SELECT DATE(CASE 
+                   WHEN typeof(timestamp) = 'integer' THEN datetime(timestamp/1000, 'unixepoch')
+                   ELSE timestamp 
+               END) as date, COUNT(*) as count 
+               FROM open_channels 
+               WHERE DATE(CASE 
+                   WHEN typeof(timestamp) = 'integer' THEN datetime(timestamp/1000, 'unixepoch')
+                   ELSE timestamp 
+               END) BETWEEN ? AND ?
+               GROUP BY DATE(CASE 
+                   WHEN typeof(timestamp) = 'integer' THEN datetime(timestamp/1000, 'unixepoch')
+                   ELSE timestamp 
+               END)
+               ORDER BY date""",
+            (start_date, end_date)
+        ).fetchall()
+        
+        # 查询日期范围内每日的shutdown_channels数量
+        shutdown_stats = conn.execute(
+            """SELECT DATE(CASE 
+                   WHEN typeof(timestamp) = 'integer' THEN datetime(timestamp/1000, 'unixepoch')
+                   ELSE timestamp 
+               END) as date, COUNT(*) as count 
+               FROM shutdown_cells 
+               WHERE DATE(CASE 
+                   WHEN typeof(timestamp) = 'integer' THEN datetime(timestamp/1000, 'unixepoch')
+                   ELSE timestamp 
+               END) BETWEEN ? AND ?
+               GROUP BY DATE(CASE 
+                   WHEN typeof(timestamp) = 'integer' THEN datetime(timestamp/1000, 'unixepoch')
+                   ELSE timestamp 
+               END)
+               ORDER BY date""",
+            (start_date, end_date)
+        ).fetchall()
+        
+        conn.close()
+        
+        # 合并数据
+        open_dict = {row['date']: row['count'] for row in open_stats}
+        shutdown_dict = {row['date']: row['count'] for row in shutdown_stats}
+        
+        # 获取所有日期
+        all_dates = set(open_dict.keys()) | set(shutdown_dict.keys())
+        
+        result = []
+        for date in sorted(all_dates):
+            open_count = open_dict.get(date, 0)
+            shutdown_count = shutdown_dict.get(date, 0)
+            result.append({
+                'date': date,
+                'open_channels_count': open_count,
+                'shutdown_channels_count': shutdown_count
+            })
+        
+        return result
 
     def close(self):
         if self.conn:

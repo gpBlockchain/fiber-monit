@@ -94,6 +94,31 @@ def get_related_channels(tx_hash):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/daily_stats', methods=['GET'])
+def get_daily_stats():
+    """根据日期查询每日channel统计数据"""
+    date = request.args.get('date')
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    
+    if date:
+        # 查询单个日期的统计数据
+        stats = db.get_daily_channel_stats(date)
+        return jsonify(stats)
+    elif start_date and end_date:
+        # 查询日期范围的统计数据
+        stats = db.get_date_range_channel_stats(start_date, end_date)
+        return jsonify({
+            'data': stats,
+            'start_date': start_date,
+            'end_date': end_date,
+            'total_days': len(stats)
+        })
+    else:
+        return jsonify({
+            'error': '请提供date参数查询单日统计，或提供start_date和end_date参数查询日期范围统计'
+        }), 400
+
 if __name__ == '__main__':
     db.init_db()
-    app.run(debug=True)
+    app.run("0.0.0.0","8130")
