@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fiber 通道监控</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Fiber 通道监控</h1>
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <span class="stat-label">开放通道</span>
+                    <span class="stat-value" id="open-count">-</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">关闭中通道</span>
+                    <span class="stat-value" id="shutdown-count">-</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">已关闭通道</span>
+                    <span class="stat-value" id="closed-count">-</span>
+                </div>
+                <button class="refresh-btn" id="refresh-btn">🔄 刷新数据</button>
+            </div>
+        </header>
+
+        <main>
+            <!-- 开放通道 -->
+            <section class="data-section">
+                <h2>📈 开放通道</h2>
+                <div class="table-container">
+                    <div class="loading" id="open-loading">加载中...</div>
+                    <table class="data-table" id="open-table" style="display: none;">
+                        <thead>
+                            <tr>
+                                <th>区块号</th>
+                                <th>交易哈希</th>
+                                <th>状态</th>
+                                <th>金额 (CKB)</th>
+                                <th>状态更新时间</th>
+                                <th>创建时间</th>
+                            </tr>
+                        </thead>
+                        <tbody id="open-tbody">
+                        </tbody>
+                    </table>
+                    <div class="pagination-container" id="open-pagination" style="display: none;">
+                        <div class="pagination-info">
+                            <span id="open-info">显示第 1-10 条，共 0 条记录</span>
+                        </div>
+                        <div class="pagination-controls">
+                            <button class="pagination-btn" id="open-first" disabled>首页</button>
+                            <button class="pagination-btn" id="open-prev" disabled>上一页</button>
+                            <div class="pagination-pages" id="open-pages"></div>
+                            <button class="pagination-btn" id="open-next" disabled>下一页</button>
+                            <button class="pagination-btn" id="open-last" disabled>末页</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 关闭中通道 -->
+            <section class="data-section">
+                <h2>⏳ 关闭中通道</h2>
+                <div class="table-container">
+                    <div class="loading" id="shutdown-loading">加载中...</div>
+                    <table class="data-table" id="shutdown-table" style="display: none;">
+                        <thead>
+                            <tr>
+                                <th>区块号</th>
+                                <th>交易哈希</th>
+                                <th>状态</th>
+                                <th>延迟周期</th>
+                                <th>当前周期</th>
+                                <th>过期周期</th>
+                                <th>状态更新时间</th>
+                                <th>创建时间</th>
+                            </tr>
+                        </thead>
+                        <tbody id="shutdown-tbody">
+                        </tbody>
+                    </table>
+                    <div class="pagination-container" id="shutdown-pagination" style="display: none;">
+                        <div class="pagination-info">
+                            <span id="shutdown-info">显示第 1-10 条，共 0 条记录</span>
+                        </div>
+                        <div class="pagination-controls">
+                            <button class="pagination-btn" id="shutdown-first" disabled>首页</button>
+                            <button class="pagination-btn" id="shutdown-prev" disabled>上一页</button>
+                            <div class="pagination-pages" id="shutdown-pages"></div>
+                            <button class="pagination-btn" id="shutdown-next" disabled>下一页</button>
+                            <button class="pagination-btn" id="shutdown-last" disabled>末页</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 已关闭通道 -->
+            <section class="data-section">
+                <h2>✅ 已关闭通道</h2>
+                <div class="table-container">
+                    <div class="loading" id="closed-loading">加载中...</div>
+                    <table class="data-table" id="closed-table" style="display: none;">
+                        <thead>
+                            <tr>
+                                <th>区块号</th>
+                                <th>交易哈希</th>
+                                <th>CKB 手续费</th>
+                                <th>UDT 手续费</th>
+                                <th>关闭时间</th>
+                            </tr>
+                        </thead>
+                        <tbody id="closed-tbody">
+                        </tbody>
+                    </table>
+                    <div class="pagination-container" id="closed-pagination" style="display: none;">
+                        <div class="pagination-info">
+                            <span id="closed-info">显示第 1-50 条，共 0 条记录</span>
+                        </div>
+                        <div class="pagination-controls">
+                            <button class="pagination-btn" id="closed-first" disabled>首页</button>
+                            <button class="pagination-btn" id="closed-prev" disabled>上一页</button>
+                            <div class="pagination-pages" id="closed-pages"></div>
+                            <button class="pagination-btn" id="closed-next" disabled>下一页</button>
+                            <button class="pagination-btn" id="closed-last" disabled>末页</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>最后更新: <span id="last-update">-</span></p>
+        </footer></main>
+    </div>
+
+    <!-- 通道详情模态框 -->
+    <div id="channel-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>通道生命周期详情</h3>
+                <span class="close-btn" onclick="closeChannelModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="channel-details">
+                    <!-- 通道详情内容将在这里动态加载 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 统计信息模态框 -->
+    <div id="stats-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>通道统计信息</h3>
+                <span class="close-btn" onclick="closeStatsModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="stats-details">
+                    <!-- 统计详情内容将在这里动态加载 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
