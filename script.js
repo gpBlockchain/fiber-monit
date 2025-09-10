@@ -76,6 +76,76 @@ const utils = {
         return `<span class="amount">${ckb.toLocaleString()} CKB</span>`;
     },
     
+    formatShutdownStages(channel) {
+        const startTime = new Date(channel.timestamp).getTime();
+        const delayInHours = channel.delay_epoch * 4;
+        const delayInMilliseconds = delayInHours * 60 * 60 * 1000;
+
+        const stageDuration = delayInMilliseconds / 3;
+        const redeemTime = new Date(startTime + stageDuration);
+        const timeoutTime = new Date(startTime + 2 * stageDuration);
+        const abandonTime = new Date(startTime + 3 * stageDuration);
+
+        let now = new Date().getTime();
+        if( channel.status === 'live') {
+            now = new Date(channel.timestamp_status_update).getTime();
+        }
+
+        const stages = [
+            { name: '等待中', startTime: startTime, endTime: redeemTime.getTime(), description: '第0阶段' },
+            { name: '赎回 TLC', startTime: redeemTime.getTime(), endTime: timeoutTime.getTime(), description: '第一阶段' },
+            { name: 'TLC 超时', startTime: timeoutTime.getTime(), endTime: abandonTime.getTime(), description: '第二阶段' },
+            { name: 'TLC 遗弃', startTime: abandonTime.getTime(), endTime: abandonTime.getTime() + (999999 * 3600 * 1000), description: '第三阶段' }
+        ];
+
+        let currentStage = null;
+        for (const stage of stages) {
+            if (now < stage.endTime) {
+                currentStage = stage;
+                break;
+            }
+        }
+
+        if (!currentStage) {
+            // All stages are completed
+            const lastStage = stages[stages.length - 1];
+            return `
+                <div class="stage-item completed">
+                    <div class="stage-header">
+                        <span class="stage-description">所有阶段已完成</span>
+                        <span class="stage-time">${new Date(lastStage.startTime).toLocaleString('zh-CN')}</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" style="width: 100%;"></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        let progress = 0;
+        let statusClass = '';
+
+        if (now >= currentStage.startTime) {
+            progress = ((now - currentStage.startTime) / (currentStage.endTime - currentStage.startTime)) * 100;
+            statusClass = 'active';
+        } else {
+            progress = 0;
+            statusClass = 'pending';
+        }
+
+        return `
+            <div class="stage-item ${statusClass}">
+                <div class="stage-header">
+                    <span class="stage-description">${currentStage.description} (${currentStage.name})</span>
+                    <span class="stage-time">${new Date(currentStage.startTime).toLocaleString('zh-CN')}</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" style="width: ${progress}%;"></div>
+                </div>
+            </div>
+        `;
+    },
+    
     // 格式化手续费
     formatFee(fee) {
         if (!fee) return '0';
@@ -163,7 +233,8 @@ const renderer = {
                 <td>${channel.block_number || '-'}</td>
                 <td>${makeClickableHash(channel.tx_hash, 'open')}</td>
                 <td>${utils.formatStatus(channel.status)}</td>
-                <td>${utils.formatAmount(channel.amount)}</td>
+                <td>${utils.formatAmount(channel.ckb_capacity)}</td>
+                <td>${utils.formatAmount(channel.udt_capacity)}</td>
                 <td>${utils.formatTimestamp(channel.timestamp_status_update)}</td>
                 <td>${utils.formatTimestamp(channel.timestamp)}</td>
             `;
@@ -302,9 +373,10 @@ const renderer = {
                 <td>${channel.block_number || '-'}</td>
                 <td>${makeClickableHash(channel.tx_hash, 'shutdown')}</td>
                 <td>${utils.formatStatus(channel.status)}</td>
-                <td>${channel.delay_epoch || '-'}</td>
-                <td>${channel.epoch || '-'}</td>
-                <td>${channel.expire_epoch || '-'}</td>
+                <td>${utils.formatAmount(channel.ckb_capacity)}</td>
+                <td>${utils.formatAmount(channel.udt_capacity)}</td>
+                <td>${channel.have_htlcs ? '是' : '否'}</td>
+                <td>${utils.formatShutdownStages(channel)}</td>
                 <td>${utils.formatTimestamp(channel.timestamp_status_update)}</td>
                 <td>${utils.formatTimestamp(channel.timestamp)}</td>
             `;

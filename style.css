@@ -626,3 +626,75 @@ footer {
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
+
+.stages-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.stage-item {
+    border-radius: 6px;
+    padding: 12px;
+    background-color: #f9f9f9;
+    border: 1px solid #eee;
+    transition: all 0.3s ease;
+}
+
+.stage-item.pending {
+    opacity: 0.5;
+}
+
+.stage-item.active {
+    border-color: #4a90e2;
+    box-shadow: 0 0 8px rgba(74, 144, 226, 0.5);
+    background-color: #eef5ff;
+}
+
+.stage-item.completed {
+    background-color: #f0f0f0;
+}
+
+.stage-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.stage-description {
+    font-weight: bold;
+    color: #333;
+}
+
+.stage-item.active .stage-description {
+    color: #4a90e2;
+}
+
+.stage-time {
+    font-size: 0.9em;
+    color: #666;
+}
+
+.progress-bar-container {
+    width: 100%;
+    background-color: #e0e0e0;
+    border-radius: 4px;
+    height: 8px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: #76c7c0;
+    border-radius: 4px;
+    transition: width 0.5s ease-in-out;
+}
+
+.stage-item.active .progress-bar {
+    background-color: #4a90e2;
+}
+
+.stage-item.completed .progress-bar {
+    background-color: #a0a0a0;
+}

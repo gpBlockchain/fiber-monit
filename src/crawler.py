@@ -1,7 +1,8 @@
 import asyncio
 from src.database import Database
-from src.rpc_async import get_cells, get_transactions, get_tx_message, get_ln_cell_linked_hashs
+from src.rpc_async import get_cells, get_transactions, get_tx_message, get_ln_cell_linked_hashs, get_udt_balance
 from src.const import BEGIN_BLOCK_NUMBER, get_rpc_client,FUNDING_LOCK_CODE_HASH,COMMITMENT_LOCK_CODE_HASH
+from src.rpc_async import to_int_from_big_uint128_le
 import time
 
 async def crawl_open_channels(interval=60):
@@ -33,8 +34,17 @@ async def crawl_open_channels(interval=60):
                         cell_status = await rpc_client.get_live_cell(tx['io_index'],tx['tx_hash'])            
                         block_hash = await rpc_client.get_block_hash(tx['block_number'])
                         media_time = await rpc_client.get_block_median_time(block_hash)
-                        db.insert_open_channel(int(tx['block_number'],16), tx['tx_hash'], cell_status['status'], 0, int(time.time()*1000), int(media_time,16))
-                        print(f"crawl_open_channels:{int(tx['block_number'],16), tx['tx_hash'], cell_status['status'], 0, int(time.time()*1000), int(media_time,16)}")
+                        # ckb_capacity
+                        tx1 = await rpc_client.get_transaction(tx['tx_hash'])
+
+                        ckb_capacity = int(tx1['transaction']['outputs'][0]['capacity'],16)
+                        # udt_capacity
+                        if tx1['transaction']['outputs'][0]['type'] is None:
+                            udt_capacity = 0
+                        else:
+                            udt_capacity = to_int_from_big_uint128_le(tx1['transaction']['outputs_data'][0])
+                        print(f"crawl_open_channels:{int(tx['block_number'],16), tx['tx_hash'], cell_status['status'], ckb_capacity, udt_capacity, int(time.time()*1000), int(media_time,16)}")
+                        db.insert_open_channel(int(tx['block_number'],16), tx['tx_hash'], cell_status['status'], ckb_capacity, udt_capacity, int(time.time()*1000), int(media_time,16))
                 
         except Exception as e:
             print(f"Error in crawl_open_channels: {e}")
@@ -70,8 +80,29 @@ async def crawl_shutdown_channels(interval=60):
                     # print(f"linked_hashs:{linked_hashs}")
                     block_hash = await rpc_client.get_block_hash(cell['block_number'])                
                     media_time = await rpc_client.get_block_median_time(block_hash)
-                    # print(f"crawl_shutdown_channels:{int(cell['block_number'],16),linked_hashs[0], cell['out_point']['tx_hash'], "live",int(time.time()*1000),int(media_time,16)}")
-                    db.insert_shutdown_cell(int(cell['block_number'],16),linked_hashs[0], cell['out_point']['tx_hash'], "live",int(time.time()*1000),int(media_time,16))
+                    # ckb_capacity
+                    ckb_capacity = int(cell['output']['capacity'],16)
+
+                    # udt_capacity 
+                    if cell['output']['type'] is None:
+                        udt_capacity = 0
+                    else:
+                        udt_capacity = to_int_from_big_uint128_le(cell["output_data"])
+                    
+                    # get delay_epoch 
+                    cell_args = cell['output']['lock']['args']
+                    # if len(cell_args) == 32:
+                    epoch = int.from_bytes(bytes.fromhex(cell_args[42:40+16]), 'little')
+                    epoch = EpochNumberWithFraction(epoch)
+                    delay_epoch = epoch.number()
+                    # check have_tlc 
+                    if len(cell_args) == 74:
+                        have_tlc = False
+                    else:
+                        have_tlc = True
+                    print(f"insert_shutdown_cell:{int(cell['block_number'],16),linked_hashs[0], cell['out_point']['tx_hash'], "live",ckb_capacity,udt_capacity,delay_epoch,have_tlc,int(time.time()*1000),int(media_time,16)}")
+                    db.insert_shutdown_cell(int(cell['block_number'],16),linked_hashs[0], cell['out_point']['tx_hash'], "live",ckb_capacity,udt_capacity,delay_epoch,have_tlc,int(time.time()*1000),int(media_time,16))
+
             print(f"crawl_shutdown_channels end")
         except Exception as e:
             print(f"Error in crawl_shutdown_channels: {e}")
@@ -188,7 +219,7 @@ async def check_shutdown_channels_live_status(interval=300):
         await asyncio.sleep(interval)
 
 
-async def crawl_all(open_interval=60, shutdown_interval=60, closed_interval=60, check_live_interval=300):
+async def crawl_all(open_interval=60*60, shutdown_interval=60*60, closed_interval=60*60, check_live_interval=5*60):
     """并发运行所有爬虫任务"""
     rpc_client = get_rpc_client()
     try:
@@ -202,6 +233,22 @@ async def crawl_all(open_interval=60, shutdown_interval=60, closed_interval=60, 
     finally:
         # 确保在程序结束时关闭 RPC 客户端会话
         await rpc_client.close()
+
+class EpochNumberWithFraction:
+    def __init__(self, value):
+        self.value = value
+
+    def number(self):
+        return (self.value >> 0) & ((1 << 24) - 1)
+
+    def index(self):
+        return (self.value >> 24) & ((1 << 16) - 1)
+
+    def length(self):
+        return (self.value >> 40) & ((1 << 16) - 1)
+
+    def __str__(self):
+        return f"EpochNumberWithFraction(value={self.value}, number={self.number()}, index={self.index()}, length={self.length()})"
 
 
 if __name__ == "__main__":
