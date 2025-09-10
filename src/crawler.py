@@ -64,7 +64,7 @@ async def crawl_shutdown_channels(interval=60):
             cells = await get_cells(rpc_client,COMMITMENT_LOCK_CODE_HASH, BEGIN_BLOCK_NUMBER, end_number)
             for cell in cells:
                 data = db.get_shutdown_cell_by_tx_hash(cell['out_point']['tx_hash'])
-                print(f"crawl_shutdown_channels data:{data}:{data is None}")
+                # print(f"crawl_shutdown_channels data:{data}:{data is None}")
                 if data is None:
                     linked_hashs = await get_ln_cell_linked_hashs(rpc_client,cell['out_point']['tx_hash'])
                     # print(f"linked_hashs:{linked_hashs}")
@@ -110,7 +110,7 @@ async def crawl_closed_channels(interval=60):
                         media_time = await rpc_client.get_block_median_time(block_hash)
                         linked_hashs = await get_ln_cell_linked_hashs(rpc_client,tx['tx_hash'])
                         db.insert_closed_channel(int(tx['block_number'],16),linked_hashs[0], tx['tx_hash'], tx_msg['ckb_fee'], tx_msg['udt_fee'], int(media_time,16))
-                        # print(f"insert_close_channel:{int(tx['block_number'],16), tx['tx_hash'], tx_msg['ckb_fee'], tx_msg['udt_fee'], int(media_time,16)}")
+                        print(f"insert_close_channel:{int(tx['block_number'],16), tx['tx_hash'], tx_msg['ckb_fee'], tx_msg['udt_fee'], int(media_time,16)}")
 
         except Exception as e:
             print(f"Error in crawl_closed_channels: {e}")
