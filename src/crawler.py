@@ -100,7 +100,7 @@ async def crawl_shutdown_channels(interval=60):
                         have_tlc = False
                     else:
                         have_tlc = True
-                    print(f"insert_shutdown_cell:{int(cell['block_number'],16),linked_hashs[0], cell['out_point']['tx_hash'], "live",ckb_capacity,udt_capacity,delay_epoch,have_tlc,int(time.time()*1000),int(media_time,16)}")
+                    print(f"insert_shutdown_cell:{int(cell['block_number'],16),linked_hashs[0], cell['out_point']['tx_hash'], 'live',ckb_capacity,udt_capacity,delay_epoch,have_tlc,int(time.time()*1000),int(media_time,16)}")
                     db.insert_shutdown_cell(int(cell['block_number'],16),linked_hashs[0], cell['out_point']['tx_hash'], "live",ckb_capacity,udt_capacity,delay_epoch,have_tlc,int(time.time()*1000),int(media_time,16))
 
             print(f"crawl_shutdown_channels end")
