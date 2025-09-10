@@ -354,6 +354,7 @@ async def main():
 async def get_transactions(rpcClient,lock_script_code_hash, begin_number,end_number):
     # This is a mock implementation. In a real scenario, you would make an RPC call
     # to a CKB node to get transactions based on the lock script and args prefix.
+    print(f"get_transactions begin_number:{begin_number},end_number:{end_number}")
     txs = await rpcClient.get_transactions({
             "script": {
                 "code_hash": lock_script_code_hash,

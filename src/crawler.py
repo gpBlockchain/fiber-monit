@@ -27,13 +27,14 @@ async def crawl_open_channels(interval=60):
             for i in range(begin_number, end_number, 1000):
                 batch_end = min(i + 1000, end_number)
                 print(f"crawl open channels Processing blocks {i} to {batch_end}")
-                txs = await get_transactions(rpc_client,FUNDING_LOCK_CODE_HASH, begin_number, end_number)
+                txs = await get_transactions(rpc_client,FUNDING_LOCK_CODE_HASH, i, batch_end)
                 for tx in txs:
                     if tx['io_type'] == 'output':
                         cell_status = await rpc_client.get_live_cell(tx['io_index'],tx['tx_hash'])            
                         block_hash = await rpc_client.get_block_hash(tx['block_number'])
                         media_time = await rpc_client.get_block_median_time(block_hash)
                         db.insert_open_channel(int(tx['block_number'],16), tx['tx_hash'], cell_status['status'], 0, int(time.time()*1000), int(media_time,16))
+                        print(f"crawl_open_channels:{int(tx['block_number'],16), tx['tx_hash'], cell_status['status'], 0, int(time.time()*1000), int(media_time,16)}")
                 
         except Exception as e:
             print(f"Error in crawl_open_channels: {e}")
@@ -61,9 +62,9 @@ async def crawl_shutdown_channels(interval=60):
             # 分批处理区块
             print(f"Crawling shutdown channel Processing blocks")
             cells = await get_cells(rpc_client,COMMITMENT_LOCK_CODE_HASH, BEGIN_BLOCK_NUMBER, end_number)
-            print(f"crawl_shutdown_channels len:{len(cells)}")
             for cell in cells:
                 data = db.get_shutdown_cell_by_tx_hash(cell['out_point']['tx_hash'])
+                print(f"crawl_shutdown_channels data:{data}:{data is None}")
                 if data is None:
                     linked_hashs = await get_ln_cell_linked_hashs(rpc_client,cell['out_point']['tx_hash'])
                     # print(f"linked_hashs:{linked_hashs}")

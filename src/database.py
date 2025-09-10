@@ -22,7 +22,7 @@ class Database:
         CREATE TABLE IF NOT EXISTS open_channels (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             block_number INTEGER,
-            tx_hash TEXT NOT NULL,
+            tx_hash TEXT NOT NULL UNIQUE,
             status TEXT NOT NULL,
             amount INTEGER NOT NULL,
             timestamp_status_update DATETIME,
@@ -35,7 +35,7 @@ class Database:
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             block_number INTEGER,
             pre_tx_hash TEXT,
-            tx_hash TEXT NOT NULL,
+            tx_hash TEXT NOT NULL UNIQUE,
             status TEXT NOT NULL,
             timestamp_status_update DATETIME,
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -47,7 +47,7 @@ class Database:
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             block_number INTEGER,
             pre_tx_hash TEXT,
-            tx_hash TEXT NOT NULL,
+            tx_hash TEXT NOT NULL UNIQUE,
             ckb_fee INTEGER,
             udt_fee INTEGER,
             pre_tx_hash_timestamp DATETIME,
@@ -59,27 +59,42 @@ class Database:
 
     def insert_open_channel(self, block_number, tx_hash, status, amount, timestamp_status_update,timestamp):
         conn = self.get_connection()
-        conn.execute(
-            "INSERT INTO open_channels (block_number, tx_hash, status, amount, timestamp_status_update, timestamp) VALUES (?, ?, ?, ?, ?, ?)",
-            (block_number, tx_hash, status, amount, timestamp_status_update, timestamp),
-        )
-        conn.commit()
+        try:
+            conn.execute(
+                "INSERT OR IGNORE INTO open_channels (block_number, tx_hash, status, amount, timestamp_status_update, timestamp) VALUES (?, ?, ?, ?, ?, ?)",
+                (block_number, tx_hash, status, amount, timestamp_status_update, timestamp),
+            )
+            conn.commit()
+            conn.close()
+        except sqlite3.Error as e:
+            print(f"Error inserting open_channel with tx_hash {tx_hash}: {e}")
+            conn.close()
 
     def insert_shutdown_cell(self, block_number, pre_tx_hash, tx_hash, status, timestamp_status_update,timestamp):
         conn = self.get_connection()
-        conn.execute(
-            "INSERT INTO shutdown_cells (block_number, pre_tx_hash, tx_hash, status, timestamp_status_update,timestamp) VALUES (?, ?, ?, ?, ?, ?)",
-            (block_number, pre_tx_hash, tx_hash, status, timestamp_status_update,timestamp),
-        )
-        conn.commit()
+        try:
+            conn.execute(
+                "INSERT OR IGNORE INTO shutdown_cells (block_number, pre_tx_hash, tx_hash, status, timestamp_status_update,timestamp) VALUES (?, ?, ?, ?, ?, ?)",
+                (block_number, pre_tx_hash, tx_hash, status, timestamp_status_update,timestamp),
+            )
+            conn.commit()
+            conn.close()
+        except sqlite3.Error as e:
+            print(f"Error inserting shutdown_cell with tx_hash {tx_hash}: {e}")
+            conn.close()
 
     def insert_closed_channel(self, block_number, pre_tx_hash, tx_hash, ckb_fee, udt_fee, timestamp):
         conn = self.get_connection()
-        conn.execute(
-            "INSERT INTO closed_channels (block_number, pre_tx_hash, tx_hash, ckb_fee, udt_fee, timestamp) VALUES (?, ?, ?, ?, ?, ?)",
-            (block_number, pre_tx_hash, tx_hash, ckb_fee, udt_fee, timestamp),
-        )
-        conn.commit()
+        try:
+            conn.execute(
+                "INSERT OR IGNORE INTO closed_channels (block_number, pre_tx_hash, tx_hash, ckb_fee, udt_fee, timestamp) VALUES (?, ?, ?, ?, ?, ?)",
+                (block_number, pre_tx_hash, tx_hash, ckb_fee, udt_fee, timestamp),
+            )
+            conn.commit()
+            conn.close()
+        except sqlite3.Error as e:
+            print(f"Error inserting closed_channel with tx_hash {tx_hash}: {e}")
+            conn.close()
 
     def get_open_channels(self, page=1, per_page=50):
         conn = self.get_connection()
