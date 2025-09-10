@@ -592,15 +592,6 @@ function loadPageData(type, page) {
     }
 }
 
-// 自动刷新功能
-function setupAutoRefresh() {
-    // 每30秒自动刷新一次数据
-    setInterval(() => {
-        if (!document.hidden) {
-            dataLoader.loadAllData();
-        }
-    }, 30000);
-}
 
 // 初始化应用
 function initApp() {
@@ -608,9 +599,6 @@ function initApp() {
     
     // 设置事件监听器
     setupEventListeners();
-    
-    // 设置自动刷新
-    setupAutoRefresh();
     
     // 初始加载数据
     dataLoader.loadAllData();
