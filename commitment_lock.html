@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Commitment Lock Parser</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Commitment Lock Parser</h1>
+            <nav>
+                <a href="index.html">Back to Dashboard</a>
+            </nav>
+        </header>
+        <main>
+            <div class="parser-container">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Transaction Details</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="input-group">
+                            <label for="tx-hash">Transaction Hash (hex)</label>
+                            <div class="input-with-button">
+                                <input type="text" id="tx-hash" placeholder="Enter the transaction hash in hex format...">
+                                <button id="fetch-btn">Fetch Transaction</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Manual Parsing</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="input-group">
+                            <label for="lock-args">Lock Script Args (hex)</label>
+                            <textarea id="lock-args" rows="4" placeholder="Enter the lock script args in hex format..."></textarea>
+                        </div>
+                        <div class="input-group">
+                            <label for="witness">Witness (hex)</label>
+                            <textarea id="witness" rows="10" placeholder="Enter the witness data in hex format..."></textarea>
+                        </div>
+                        <button id="parse-btn">Parse Transaction</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Parsed Data</h2>
+                    </div>
+                    <div class="card-body">
+                        <pre id="parsed-output"></pre>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="commitment_lock.js"></script>
+</body>
+</html>

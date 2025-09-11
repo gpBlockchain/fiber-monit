@@ -1,5 +1,5 @@
 // API 基础URL
-const API_BASE_URL = 'http://127.0.0.1:8130';
+const API_BASE_URL = 'http://18.167.71.41:8130';
 
 // 全局变量
 let refreshInterval;
@@ -411,8 +411,8 @@ const renderer = {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${channel.block_number || '-'}</td>
-                <td>${makeClickableHash(channel.tx_hash, 'closed')}</td>
-                <td>${utils.formatFee(channel.ckb_fee)}</td>
+                <td><a href="commitment_lock.html?tx_hash=${channel.tx_hash}" target="_blank">${utils.formatTxHash(channel.tx_hash)}</a></td>
+                <td>${utils.formatFee(channel.ckb_fee)}</td>image.png
                 <td>${utils.formatFee(channel.udt_fee)}</td>
                 <td>${utils.formatTimestamp(channel.timestamp)}</td>
             `;
