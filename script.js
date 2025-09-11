@@ -87,7 +87,7 @@ const utils = {
         const abandonTime = new Date(startTime + 3 * stageDuration);
 
         let now = new Date().getTime();
-        if( channel.status === 'live') {
+        if( channel.status !== 'live') {
             now = new Date(channel.timestamp_status_update).getTime();
         }
 
