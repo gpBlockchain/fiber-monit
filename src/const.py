@@ -1,6 +1,6 @@
 # Configuration constants
 RPC_URL = "https://testnet.ckb.dev/"
-BEGIN_BLOCK_NUMBER = 18384000
+BEGIN_BLOCK_NUMBER = 18483877
 
 # Lock script code hashes
 FUNDING_LOCK_CODE_HASH = "0x6c67887fe201ee0c7853f1682c0b77c0e6214044c156c7558269390a8afa6d7c"
