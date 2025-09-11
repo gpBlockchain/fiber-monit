@@ -15,5 +15,5 @@ if __name__ == '__main__':
     # Default intervals: 1 hour for open, 30 mins for shutdown, 6 hours for closed
     db = Database()
     db.init_db()
-    asyncio.run(crawl_all(3600, 1800, 21600))
+    asyncio.run(crawl_all())
     db.close()
