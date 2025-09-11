@@ -200,7 +200,7 @@ class AsyncRPCClient:
         LOGGER.debug(f"request:url:{self.url},data:\n{json.dumps(data)}")
         for i in range(try_count):
             try:
-                async with self.session.post(self.url, data=json.dumps(data), headers=headers) as response:
+                async with self.session.post(self.url, data=json.dumps(data), headers=headers, timeout=30) as response:
                     response.raise_for_status()
                     resp_json = await response.json()
                     LOGGER.debug(f"response:\n{json.dumps(resp_json)}")
