@@ -412,7 +412,7 @@ const renderer = {
             row.innerHTML = `
                 <td>${channel.block_number || '-'}</td>
                 <td><a href="commitment_lock.html?tx_hash=${channel.tx_hash}" target="_blank">${utils.formatTxHash(channel.tx_hash)}</a></td>
-                <td>${utils.formatFee(channel.ckb_fee)}</td>image.png
+                <td>${utils.formatFee(channel.ckb_fee)}</td>
                 <td>${utils.formatFee(channel.udt_fee)}</td>
                 <td>${utils.formatTimestamp(channel.timestamp)}</td>
             `;
