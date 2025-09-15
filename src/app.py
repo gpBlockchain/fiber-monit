@@ -20,9 +20,14 @@ def static_files(filename):
 def get_open_channels():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 50, type=int)
+    status = request.args.get('status', None, type=str)
     
-    channels = db.get_open_channels(page, per_page)
-    total = db.get_open_channels_count()
+    if status:
+        channels = db.get_open_channels_by_status(status, page, per_page)
+        total = db.get_open_channels_count_by_status(status)
+    else:
+        channels = db.get_open_channels(page, per_page)
+        total = db.get_open_channels_count()
     
     return jsonify({
         'data': [dict(row) for row in channels],
@@ -38,9 +43,14 @@ def get_open_channels():
 def get_shutdown_channels():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 50, type=int)
+    status = request.args.get('status', None, type=str)
     
-    channels = db.get_shutdown_channels(page, per_page)
-    total = db.get_shutdown_channels_count()
+    if status:
+        channels = db.get_shutdown_channels_by_status(status, page, per_page)
+        total = db.get_shutdown_channels_count_by_status(status)
+    else:
+        channels = db.get_shutdown_channels(page, per_page)
+        total = db.get_shutdown_channels_count()
     
     return jsonify({
         'data': [dict(row) for row in channels],
@@ -118,6 +128,17 @@ def get_daily_stats():
         return jsonify({
             'error': '请提供date参数查询单日统计，或提供start_date和end_date参数查询日期范围统计'
         }), 400
+
+@app.route('/live_stats', methods=['GET'])
+def get_live_stats():
+    """获取live状态的统计数据"""
+    live_open_channels = db.get_live_open_channels_count()
+    live_shutdown_cells = db.get_live_shutdown_cells_count()
+    
+    return jsonify({
+        'live_open_channels_count': live_open_channels,
+        'live_shutdown_cells_count': live_shutdown_cells
+    })
 
 if __name__ == '__main__':
     db.init_db()

@@ -23,6 +23,14 @@
                     <span class="stat-label">已关闭通道</span>
                     <span class="stat-value" id="closed-count">-</span>
                 </div>
+                <div class="stat-item live-stats">
+                    <span class="stat-label">Live开放通道</span>
+                    <span class="stat-value" id="live-open-count">0</span>
+                </div>
+                <div class="stat-item live-stats">
+                    <span class="stat-label">Live关闭中</span>
+                    <span class="stat-value" id="live-shutdown-count">0</span>
+                </div>
                 <button class="refresh-btn" id="refresh-btn">🔄 刷新数据</button>
             </div>
         </header>
@@ -31,6 +39,14 @@
             <!-- 开放通道 -->
             <section class="data-section">
                 <h2>📈 开放通道</h2>
+                <div class="filter-container">
+                    <label for="open-status-filter">状态过滤:</label>
+                    <select id="open-status-filter" class="status-filter">
+                        <option value="all">全部状态</option>
+                        <option value="live">Live</option>
+                        <option value="unknown">Unknown</option>
+                    </select>
+                </div>
                 <div class="table-container">
                     <div class="loading" id="open-loading">加载中...</div>
                     <table class="data-table" id="open-table" style="display: none;">
@@ -66,6 +82,14 @@
             <!-- 关闭中通道 -->
             <section class="data-section">
                 <h2>⏳ 关闭中通道</h2>
+                <div class="filter-container">
+                    <label for="shutdown-status-filter">状态过滤:</label>
+                    <select id="shutdown-status-filter" class="status-filter">
+                        <option value="all">全部状态</option>
+                        <option value="live">Live</option>
+                        <option value="unknown">Unknown</option>
+                    </select>
+                </div>
                 <div class="table-container">
                     <div class="loading" id="shutdown-loading">加载中...</div>
                     <table class="data-table" id="shutdown-table" style="display: none;">

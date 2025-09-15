@@ -10,7 +10,8 @@ const PER_PAGE = 10; // 每页显示条数
 const API_ENDPOINTS = {
     openChannels: '/open_channels',
     shutdownChannels: '/shutdown_channels',
-    closedChannels: '/closed_channels'
+    closedChannels: '/closed_channels',
+    liveStats: '/live_stats'
 };
 
 // 分页状态
@@ -20,16 +21,28 @@ const paginationState = {
     closed: { currentPage: 1, totalPages: 1, totalRecords: 0 }
 };
 
+// 过滤状态
+const filterState = {
+    open: 'all',
+    shutdown: 'all'
+};
+
 // DOM 元素
 const elements = {
     // 统计数据
     openCount: document.getElementById('open-count'),
     shutdownCount: document.getElementById('shutdown-count'),
     closedCount: document.getElementById('closed-count'),
+    liveOpenCount: document.getElementById('live-open-count'),
+    liveShutdownCount: document.getElementById('live-shutdown-count'),
     lastUpdate: document.getElementById('last-update'),
     
     // 刷新按钮
     refreshBtn: document.getElementById('refresh-btn'),
+    
+    // 过滤器元素
+    openStatusFilter: document.getElementById('open-status-filter'),
+    shutdownStatusFilter: document.getElementById('shutdown-status-filter'),
     
     // 加载状态
     openLoading: document.getElementById('open-loading'),
@@ -177,9 +190,12 @@ const utils = {
 
 // API 调用函数
 const api = {
-    async fetchData(endpoint, page = 1, perPage = PER_PAGE) {
+    async fetchData(endpoint, page = 1, perPage = PER_PAGE, status = null) {
         try {
-            const url = `${API_BASE_URL}${endpoint}?page=${page}&per_page=${perPage}`;
+            let url = `${API_BASE_URL}${endpoint}?page=${page}&per_page=${perPage}`;
+            if (status && status !== 'all') {
+                url += `&status=${status}`;
+            }
             const response = await fetch(url);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -191,12 +207,26 @@ const api = {
         }
     },
     
-    async getOpenChannels() {
-        return await this.fetchData('/open_channels');
+    async fetchLiveStats() {
+        try {
+            const url = `${API_BASE_URL}${API_ENDPOINTS.liveStats}`;
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return await response.json();
+        } catch (error) {
+            utils.showError(`Failed to fetch live stats: ${error.message}`);
+            throw error;
+        }
     },
     
-    async getShutdownChannels() {
-        return await this.fetchData('/shutdown_channels');
+    async getOpenChannels(page = 1, status = null) {
+        return await this.fetchData('/open_channels', page, PER_PAGE, status);
+    },
+    
+    async getShutdownChannels(page = 1, status = null) {
+        return await this.fetchData('/shutdown_channels', page, PER_PAGE, status);
     },
     
     async getClosedChannels() {
@@ -423,10 +453,16 @@ const renderer = {
     },
     
     // 更新统计数据
-    updateStats(openResponse, shutdownResponse, closedResponse) {
+    updateStats(openResponse, shutdownResponse, closedResponse, liveStats = null) {
         elements.openCount.textContent = openResponse.pagination ? openResponse.pagination.total : '0';
         elements.shutdownCount.textContent = shutdownResponse.pagination ? shutdownResponse.pagination.total : '0';
         elements.closedCount.textContent = closedResponse.pagination ? closedResponse.pagination.total : '0';
+        
+        // 更新live统计数据
+        if (liveStats) {
+            elements.liveOpenCount.textContent = liveStats.live_open_channels_count || '0';
+            elements.liveShutdownCount.textContent = liveStats.live_shutdown_cells_count || '0';
+        }
     }
 };
 
@@ -450,7 +486,7 @@ const dataLoader = {
     async loadOpenChannels(page = 1) {
         this.setLoading('open', true);
         try {
-            const response = await api.fetchData(API_ENDPOINTS.openChannels, page);
+            const response = await api.getOpenChannels(page, filterState.open);
             renderer.renderOpenChannels(response);
             return response;
         } catch (error) {
@@ -465,7 +501,7 @@ const dataLoader = {
     async loadShutdownChannels(page = 1) {
         this.setLoading('shutdown', true);
         try {
-            const response = await api.fetchData(API_ENDPOINTS.shutdownChannels, page);
+            const response = await api.getShutdownChannels(page, filterState.shutdown);
             renderer.renderShutdownChannels(response);
             return response;
         } catch (error) {
@@ -497,13 +533,14 @@ const dataLoader = {
         elements.refreshBtn.textContent = '🔄 加载中...';
         
         try {
-            const [openChannels, shutdownChannels, closedChannels] = await Promise.all([
+            const [openChannels, shutdownChannels, closedChannels, liveStats] = await Promise.all([
                 this.loadOpenChannels(),
                 this.loadShutdownChannels(),
-                this.loadClosedChannels()
+                this.loadClosedChannels(),
+                api.fetchLiveStats()
             ]);
             
-            renderer.updateStats(openChannels, shutdownChannels, closedChannels);
+            renderer.updateStats(openChannels, shutdownChannels, closedChannels, liveStats);
             utils.updateLastUpdateTime();
         } catch (error) {
             utils.showError('Failed to load data');
@@ -519,6 +556,19 @@ function setupEventListeners() {
     // 刷新按钮点击事件
     elements.refreshBtn.addEventListener('click', () => {
         dataLoader.loadAllData();
+    });
+    
+    // 状态过滤器事件
+    elements.openStatusFilter.addEventListener('change', (e) => {
+        filterState.open = e.target.value;
+        paginationState.open.currentPage = 1; // 重置到第一页
+        dataLoader.loadOpenChannels(1);
+    });
+    
+    elements.shutdownStatusFilter.addEventListener('change', (e) => {
+        filterState.shutdown = e.target.value;
+        paginationState.shutdown.currentPage = 1; // 重置到第一页
+        dataLoader.loadShutdownChannels(1);
     });
     
     // 页面可见性变化时自动刷新

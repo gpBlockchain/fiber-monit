@@ -152,6 +152,20 @@ class Database:
         with self.get_connection() as conn:
             return conn.execute('SELECT COUNT(*) as count FROM open_channels').fetchone()['count']
     
+    def get_open_channels_by_status(self, status, page=1, per_page=50):
+        with self.get_connection() as conn:
+            offset = (page - 1) * per_page
+            return conn.execute('SELECT * FROM open_channels WHERE status = ? ORDER BY block_number DESC LIMIT ? OFFSET ?', (status, per_page, offset)).fetchall()
+    
+    def get_open_channels_count_by_status(self, status):
+        with self.get_connection() as conn:
+            return conn.execute('SELECT COUNT(*) as count FROM open_channels WHERE status = ?', (status,)).fetchone()['count']
+    
+    def get_live_open_channels_count(self):
+        """获取live状态的open_channels数量"""
+        with self.get_connection() as conn:
+            return conn.execute('SELECT COUNT(*) as count FROM open_channels WHERE status = "live"').fetchone()['count']
+    
     def get_all_live_open_channels(self):
         """获取所有open_channels记录，用于检查live状态"""
         with self.get_connection() as conn:
@@ -194,6 +208,20 @@ class Database:
     def get_shutdown_channels_count(self):
         with self.get_connection() as conn:
             return conn.execute('SELECT COUNT(*) as count FROM shutdown_cells').fetchone()['count']
+    
+    def get_shutdown_channels_by_status(self, status, page=1, per_page=50):
+        with self.get_connection() as conn:
+            offset = (page - 1) * per_page
+            return conn.execute('SELECT * FROM shutdown_cells WHERE status = ? ORDER BY block_number DESC LIMIT ? OFFSET ?', (status, per_page, offset)).fetchall()
+    
+    def get_shutdown_channels_count_by_status(self, status):
+        with self.get_connection() as conn:
+            return conn.execute('SELECT COUNT(*) as count FROM shutdown_cells WHERE status = ?', (status,)).fetchone()['count']
+    
+    def get_live_shutdown_cells_count(self):
+        """获取live状态的shutdown_cells数量"""
+        with self.get_connection() as conn:
+            return conn.execute('SELECT COUNT(*) as count FROM shutdown_cells WHERE status = "live"').fetchone()['count']
     
     def get_shutdown_cell_by_tx_hash(self, tx_hash):
         """根据tx_hash查询shutdown_cell记录"""
