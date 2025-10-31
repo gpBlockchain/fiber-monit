@@ -86,6 +86,7 @@ function littleEndianHexToBigInt(hex) {
 }
 
 function parseCommitmentLock() {
+    const lockVersion = document.getElementById('lock-version').value;
     const lockArgsHex = document.getElementById('lock-args').value.trim();
     const witnessHex = document.getElementById('witness').value.trim();
     const outputPre = document.getElementById('parsed-output');
@@ -98,11 +99,13 @@ function parseCommitmentLock() {
     try {
         const parsedData = {};
 
-        // Parse Lock Script Args
-        parsedData.lockArgs = parseLockArgs(lockArgsHex);
-
-        // Parse Witness
-        parsedData.witness = parseWitness(witnessHex);
+        if (lockVersion === '2') {
+            parsedData.lockArgs = parseLockArgsV2(lockArgsHex);
+            parsedData.witness = parseWitnessV2(witnessHex);
+        } else {
+            parsedData.lockArgs = parseLockArgs(lockArgsHex);
+            parsedData.witness = parseWitness(witnessHex);
+        }
 
         outputPre.textContent = JSON.stringify(parsedData, (key, value) =>
             typeof value === 'bigint' ? value.toString() : value, 2);
@@ -148,6 +151,31 @@ function parseLockArgs(hex) {
         delay_epoch: parseEpoch(delayEpoch),
         version: version.toString(),
         htlcs: htlcs ? `0x${htlcs}` : ''
+    };
+}
+
+function parseLockArgsV2(hex) {
+    const data = hex.startsWith('0x') ? hex.substring(2) : hex;
+    let offset = 0;
+
+    const pubkeyHash = data.substring(offset, offset + 40);
+    offset += 40;
+
+    const delayEpochHex = data.substring(offset, offset + 16);
+    const delayEpoch = littleEndianHexToBigInt(delayEpochHex);
+    offset += 16;
+
+    const versionHex = data.substring(offset, offset + 16);
+    const version = BigInt('0x' + versionHex);
+    offset += 16;
+
+    const settlementHash = data.substring(offset);
+
+    return {
+        pubkey_hash: `0x${pubkeyHash}`,
+        delay_epoch: parseEpoch(delayEpoch),
+        version: version.toString(),
+        settlement_hash: settlementHash ? `0x${settlementHash}` : ''
     };
 }
 
@@ -223,6 +251,107 @@ function parseWitness(hex) {
             htlcs: htlcs,
             signature: signature,
             preimage: preimage
+        };
+    }
+
+    return witnessData;
+}
+
+function parseWitnessV2(hex) {
+    const data = hex.startsWith('0x') ? hex.substring(2) : hex;
+    let offset = 0;
+
+    const emptyWitnessArgs = data.substring(offset, offset + 32);
+    offset += 32;
+
+    const unlockCount = parseInt(data.substring(offset, offset + 2), 16);
+    offset += 2;
+
+    const witnessData = { empty_witness_args: `0x${emptyWitnessArgs}`, unlock_count: unlockCount };
+
+    if (unlockCount === 0x00) { // Revocation unlock
+        witnessData.revocation = {
+            version: BigInt('0x' + data.substring(offset, offset + 16)),
+            pubkey: `0x${data.substring(offset + 16, offset + 16 + 64)}`,
+            signature: `0x${data.substring(offset + 16 + 64)}`
+        };
+    } else { // Settlement unlock
+        const pendingHtlcCount = parseInt(data.substring(offset, offset + 2), 16);
+        offset += 2;
+        const htlcs = [];
+        for (let i = 0; i < pendingHtlcCount; i++) {
+            const htlc_type = parseInt(data.substring(offset, offset + 2), 16);
+            offset += 2;
+
+            const paymentAmountHex = data.substring(offset, offset + 32);
+            const payment_amount = littleEndianHexToBigInt(paymentAmountHex);
+            offset += 32;
+
+            const payment_hash = `0x${data.substring(offset, offset + 40)}`;
+            offset += 40;
+
+            const remote_htlc_pubkey_hash = `0x${data.substring(offset, offset + 40)}`;
+            offset += 40;
+
+            const local_htlc_pubkey_hash = `0x${data.substring(offset, offset + 40)}`;
+            offset += 40;
+
+            const htlcExpiryHex = data.substring(offset, offset + 16);
+            let htlc_expiry_timestamp = littleEndianHexToBigInt(htlcExpiryHex);
+            htlc_expiry_timestamp = (htlc_expiry_timestamp & ((1n << 56n) - 1n)) * 1000n;
+            const htlc_expiry = new Date(Number(htlc_expiry_timestamp)).toLocaleString('zh-CN');
+            offset += 16;
+
+            const htlc = {
+                htlc_type: htlc_type,
+                payment_amount: payment_amount,
+                payment_hash: payment_hash,
+                remote_htlc_pubkey_hash: remote_htlc_pubkey_hash,
+                local_htlc_pubkey_hash: local_htlc_pubkey_hash,
+                htlc_expiry: htlc_expiry,
+                htlc_expiry_timestamp: htlc_expiry_timestamp
+            };
+            htlcs.push(htlc);
+        }
+
+        const settlement_remote_pubkey_hash = `0x${data.substring(offset, offset + 40)}`;
+        offset += 40;
+        const settlement_remote_amount = littleEndianHexToBigInt(data.substring(offset, offset + 32));
+        offset += 32;
+        const settlement_local_pubkey_hash = `0x${data.substring(offset, offset + 40)}`;
+        offset += 40;
+        const settlement_local_amount = littleEndianHexToBigInt(data.substring(offset, offset + 32));
+        offset += 32;
+
+        const unlocks = [];
+        for (let i = 0; i < unlockCount; i++) {
+            const unlock_type = parseInt(data.substring(offset, offset + 2), 16);
+            offset += 2;
+            const with_preimage = parseInt(data.substring(offset, offset + 2), 16);
+            offset += 2;
+            const signature = `0x${data.substring(offset, offset + 130)}`;
+            offset += 130;
+            let preimage = 'N/A';
+            if (with_preimage === 0x01) {
+                preimage = `0x${data.substring(offset, offset + 64)}`;
+                offset += 64;
+            }
+            unlocks.push({
+                unlock_type: unlock_type,
+                with_preimage: with_preimage,
+                signature: signature,
+                preimage: preimage
+            });
+        }
+
+        witnessData.settlement = {
+            pending_htlc_count: pendingHtlcCount,
+            htlcs: htlcs,
+            settlement_remote_pubkey_hash: settlement_remote_pubkey_hash,
+            settlement_remote_amount: settlement_remote_amount,
+            settlement_local_pubkey_hash: settlement_local_pubkey_hash,
+            settlement_local_amount: settlement_local_amount,
+            unlocks: unlocks
         };
     }
 
