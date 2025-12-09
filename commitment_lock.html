@@ -25,9 +25,18 @@
                             <label for="tx-hash">Transaction Hash (hex)</label>
                             <div class="input-with-button">
                                 <input type="text" id="tx-hash" placeholder="Enter the transaction hash in hex format...">
-                                <button id="fetch-btn">Fetch Transaction</button>
+                                <button id="fetch-btn">Fetch & Trace</button>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <div class="card" id="trace-card" style="display: none;">
+                    <div class="card-header">
+                        <h2>Transaction Trace</h2>
+                    </div>
+                    <div class="card-body">
+                        <div id="trace-output" class="stages-container"></div>
                     </div>
                 </div>
 
@@ -39,8 +48,8 @@
                         <div class="input-group">
                             <label for="lock-version">Version</label>
                             <select id="lock-version">
-                                <option value="1" selected>v1</option>
-                                <option value="2">v2</option>
+                                <option value="1">v1</option>
+                                <option value="2" selected>v2</option>
                             </select>
                         </div>
                         <div class="input-group">
@@ -60,7 +69,7 @@
                         <h2>Parsed Data</h2>
                     </div>
                     <div class="card-body">
-                        <pre id="parsed-output"></pre>
+                        <div id="parsed-output"></div>
                     </div>
                 </div>
             </div>
