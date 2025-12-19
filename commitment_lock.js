@@ -426,27 +426,110 @@ function renderTrace(trace, container) {
         if (item.msg.parsed_witness) {
             const details = document.createElement('details');
             details.style.marginTop = '15px';
-            details.style.paddingTop = '10px';
-            details.style.borderTop = '1px dashed #ccc';
+            details.style.background = '#fff';
+            details.style.border = '1px solid #e2e8f0';
+            details.style.borderRadius = '8px';
+            details.style.overflow = 'hidden';
             
             const summary = document.createElement('summary');
-            summary.textContent = 'Show Decoded Witness';
-            summary.style.fontWeight = 'bold';
-            summary.style.color = '#764ba2';
+            summary.style.padding = '12px 15px';
             summary.style.cursor = 'pointer';
-            summary.style.marginBottom = '5px';
+            summary.style.fontWeight = '600';
+            summary.style.color = '#4a5568';
             summary.style.outline = 'none';
+            summary.style.listStyle = 'none';
+            summary.style.display = 'flex';
+            summary.style.alignItems = 'center';
+            summary.style.justifyContent = 'space-between';
+            summary.style.backgroundColor = '#f8f9fa';
             
+            const leftPart = document.createElement('div');
+            leftPart.style.display = 'flex';
+            leftPart.style.alignItems = 'center';
+            leftPart.style.gap = '8px';
+            
+            leftPart.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #667eea;">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                <span>Decoded Witness Data</span>
+            `;
+
+            const copyBtn = document.createElement('button');
+            copyBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+            copyBtn.title = "Copy JSON";
+            copyBtn.style.marginLeft = '8px';
+            copyBtn.style.background = 'white';
+            copyBtn.style.border = '1px solid #cbd5e0';
+            copyBtn.style.borderRadius = '4px';
+            copyBtn.style.cursor = 'pointer';
+            copyBtn.style.padding = '4px';
+            copyBtn.style.color = '#718096';
+            copyBtn.style.display = 'flex';
+            copyBtn.style.alignItems = 'center';
+            copyBtn.style.transition = 'all 0.2s';
+
+            copyBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const jsonStr = JSON.stringify(item.msg.parsed_witness, (key, value) => {
+                    if (typeof value === 'bigint') {
+                        return value.toString();
+                    }
+                    return value;
+                }, 2);
+                
+                navigator.clipboard.writeText(jsonStr).then(() => {
+                    const originalHTML = copyBtn.innerHTML;
+                    copyBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #48bb78;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+                    copyBtn.style.borderColor = '#48bb78';
+                    setTimeout(() => {
+                        copyBtn.innerHTML = originalHTML;
+                        copyBtn.style.borderColor = '#cbd5e0';
+                    }, 2000);
+                });
+            });
+            
+            leftPart.appendChild(copyBtn);
+
+            const rightPart = document.createElement('span');
+            rightPart.className = 'toggle-icon';
+            rightPart.style.transition = 'transform 0.2s ease';
+            rightPart.style.fontSize = '0.8em';
+            rightPart.style.color = '#a0aec0';
+            rightPart.textContent = '▼';
+
+            summary.appendChild(leftPart);
+            summary.appendChild(rightPart);
+            
+            // Hide default marker for Webkit
+            const style = document.createElement('style');
+            style.textContent = 'details > summary::-webkit-details-marker { display: none; }';
+            details.appendChild(style);
+
             const witnessDiv = document.createElement('div');
-            witnessDiv.style.marginTop = '10px';
-            witnessDiv.style.padding = '10px';
-            witnessDiv.style.background = '#f8f9fa';
-            witnessDiv.style.borderRadius = '8px';
+            witnessDiv.style.padding = '15px';
             witnessDiv.style.overflowX = 'auto';
+            witnessDiv.style.borderTop = '1px solid #e2e8f0';
             
             witnessDiv.appendChild(createTableFromObject(item.msg.parsed_witness));
             details.appendChild(summary);
             details.appendChild(witnessDiv);
+            
+            // Icon rotation
+            details.addEventListener('toggle', () => {
+                const icon = summary.querySelector('.toggle-icon');
+                if (details.open) {
+                    icon.style.transform = 'rotate(180deg)';
+                } else {
+                    icon.style.transform = 'rotate(0deg)';
+                }
+            });
             
             content.appendChild(details);
         }
@@ -569,10 +652,121 @@ function renderOutput(data, container) {
     container.appendChild(createTableFromObject(data.witness));
 }
 
-function createTableFromObject(obj) {
+function renderCellContent(value, td) {
+    if (typeof value === 'bigint') {
+        td.textContent = value.toString();
+    } else if (typeof value === 'object' && value !== null) {
+        if (Array.isArray(value)) {
+            if (value.length === 0) {
+                td.textContent = 'Empty List';
+            } else {
+                // Check if it's an array of objects for horizontal layout
+                const isArrayOfObjects = value.length > 0 && value.every(item => typeof item === 'object' && item !== null && !Array.isArray(item));
+                
+                if (isArrayOfObjects) {
+                    // Horizontal Table Layout for Array of Objects
+                    const subTable = document.createElement('table');
+                    subTable.className = 'data-table';
+                    subTable.style.width = '100%';
+                    subTable.style.marginTop = '5px';
+                    subTable.style.fontSize = '0.85em';
+                    subTable.style.background = 'transparent';
+                    
+                    const thead = document.createElement('thead');
+                    const headerRow = document.createElement('tr');
+                    const keys = Object.keys(value[0]);
+                    
+                    keys.forEach(k => {
+                        const th = document.createElement('th');
+                        th.textContent = k.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                        th.style.padding = '8px 10px';
+                        th.style.whiteSpace = 'nowrap';
+                        th.style.background = '#f1f5f9';
+                        th.style.color = '#4a5568';
+                        th.style.fontWeight = '600';
+                        th.style.fontSize = '0.8em';
+                        headerRow.appendChild(th);
+                    });
+                    thead.appendChild(headerRow);
+                    subTable.appendChild(thead);
+                    
+                    const tbody = document.createElement('tbody');
+                    value.forEach(item => {
+                        const row = document.createElement('tr');
+                        keys.forEach(k => {
+                            const cell = document.createElement('td');
+                            cell.style.padding = '8px 10px';
+                            cell.style.borderBottom = '1px solid #eee';
+                            renderCellContent(item[k], cell);
+                            row.appendChild(cell);
+                        });
+                        tbody.appendChild(row);
+                    });
+                    subTable.appendChild(tbody);
+                    
+                    // Wrap in overflow container
+                    const wrapper = document.createElement('div');
+                    wrapper.style.overflowX = 'auto';
+                    wrapper.appendChild(subTable);
+                    td.appendChild(wrapper);
+                    
+                } else {
+                    // Vertical List Layout (fallback)
+                    value.forEach((item, index) => {
+                        const itemDiv = document.createElement('div');
+                        itemDiv.style.marginBottom = '10px';
+                        itemDiv.style.padding = '10px';
+                        itemDiv.style.background = '#f8f9fa';
+                        itemDiv.style.borderRadius = '8px';
+                        itemDiv.style.border = '1px solid #e2e8f0';
+                        
+                        itemDiv.innerHTML = `<div style="font-weight: bold; margin-bottom: 5px; color: #667eea; font-size: 0.9em;">Item #${index + 1}</div>`;
+                        itemDiv.appendChild(createTableFromObject(item, true));
+                        td.appendChild(itemDiv);
+                    });
+                }
+            }
+        } else {
+            // Nested object
+            if (value.number !== undefined && value.index !== undefined && value.length !== undefined) {
+                 td.textContent = `Number: ${value.number}, Index: ${value.index}, Length: ${value.length}`;
+            } else {
+                 td.appendChild(createTableFromObject(value, true));
+            }
+        }
+    } else {
+        if (typeof value === 'string' && value.startsWith('0x') && value.length > 20) {
+            const shortValue = value.substring(0, 10) + '...' + value.substring(value.length - 10);
+            td.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <span title="${value}" style="font-family: monospace; font-size: 0.9em; cursor: help; border-bottom: 1px dotted #ccc;">${shortValue}</span>
+                    <button onclick="navigator.clipboard.writeText('${value}')" style="background: none; border: none; cursor: pointer; color: #667eea; padding: 2px; display: flex; align-items: center;" title="Copy full value">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    </button>
+                </div>
+            `;
+        } else {
+            td.textContent = value;
+            if (typeof value === 'string' && value.length > 50) {
+                td.style.wordBreak = 'break-all';
+                td.style.fontFamily = 'monospace';
+                td.style.fontSize = '0.9em';
+            }
+        }
+    }
+}
+
+function createTableFromObject(obj, isNested = false) {
     const table = document.createElement('table');
     table.className = 'data-table';
     table.style.width = '100%';
+    
+    // Compact style for nested tables
+    if (isNested) {
+        table.style.background = 'transparent';
+        table.style.fontSize = '0.9em';
+    }
+
     const tbody = document.createElement('tbody');
 
     for (const [key, value] of Object.entries(obj)) {
@@ -580,47 +774,18 @@ function createTableFromObject(obj) {
         
         const th = document.createElement('th');
         th.textContent = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-        th.style.width = '30%';
+        
+        // Optimized styling: auto width, no wrapping, compact padding
+        th.style.width = '1%'; // Minimal width that fits content
+        th.style.whiteSpace = 'nowrap';
         th.style.verticalAlign = 'top';
+        th.style.padding = isNested ? '8px 10px' : '12px 15px';
+        if (isNested) th.style.fontSize = '0.85em';
         
         const td = document.createElement('td');
+        td.style.padding = isNested ? '8px 10px' : '12px 15px';
         
-        if (typeof value === 'bigint') {
-            td.textContent = value.toString();
-        } else if (typeof value === 'object' && value !== null) {
-            if (Array.isArray(value)) {
-                if (value.length === 0) {
-                    td.textContent = 'Empty List';
-                } else {
-                    value.forEach((item, index) => {
-                        const itemDiv = document.createElement('div');
-                        itemDiv.style.marginBottom = '15px';
-                        itemDiv.style.padding = '10px';
-                        itemDiv.style.background = '#f8f9fa';
-                        itemDiv.style.borderRadius = '8px';
-                        itemDiv.style.border = '1px solid #e2e8f0';
-                        
-                        itemDiv.innerHTML = `<div style="font-weight: bold; margin-bottom: 5px; color: #667eea;">Item #${index + 1}</div>`;
-                        itemDiv.appendChild(createTableFromObject(item));
-                        td.appendChild(itemDiv);
-                    });
-                }
-            } else {
-                // Nested object
-                // Check if it is the epoch object
-                if (value.number !== undefined && value.index !== undefined && value.length !== undefined) {
-                     td.textContent = `Number: ${value.number}, Index: ${value.index}, Length: ${value.length}`;
-                } else {
-                     td.appendChild(createTableFromObject(value));
-                }
-            }
-        } else {
-            td.textContent = value;
-            if (typeof value === 'string' && (value.startsWith('0x') || value.length > 50)) {
-                td.style.wordBreak = 'break-all';
-                td.style.fontFamily = 'monospace';
-            }
-        }
+        renderCellContent(value, td);
 
         tr.appendChild(th);
         tr.appendChild(td);
@@ -683,14 +848,20 @@ function parseLockArgsV2(hex) {
     const version = BigInt('0x' + versionHex);
     offset += 16;
 
-    const settlementHash = data.substring(offset);
+    const settlementHash = data.substring(offset, offset + 40);
+    offset += 40;
 
-    return {
+    const settlementFlagHex = data.substring(offset, offset + 2);
+    const settlementFlag = settlementFlagHex ? parseInt(settlementFlagHex, 16) : undefined;
+
+    const result = {
         pubkey_hash: `0x${pubkeyHash}`,
         delay_epoch: parseEpoch(delayEpoch),
         version: version.toString(),
         settlement_hash: settlementHash ? `0x${settlementHash}` : ''
     };
+    if (settlementFlag !== undefined) result.settlement_flag = settlementFlag;
+    return result;
 }
 
 function parseWitness(hex) {
