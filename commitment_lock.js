@@ -1,7 +1,29 @@
-const CKB_RPC_URL = "https://testnet.ckb.dev/";
-const COMMITMENT_CODE_HASH = "0x740dee83f87c6f309824d8fd3fbdd3c8380ee6fc9acc90b1a748438afcdf81d8";
+const NETWORK_CONFIG = {
+    testnet: {
+        CKB_RPC_URL: "https://testnet.ckb.dev/",
+        COMMITMENT_CODE_HASH: "0x740dee83f87c6f309824d8fd3fbdd3c8380ee6fc9acc90b1a748438afcdf81d8"
+    },
+    mainnet: {
+        CKB_RPC_URL: "https://mainnet.ckb.dev/",
+        COMMITMENT_CODE_HASH: "0x2d45c4d3ed3e942f1945386ee82a5d1b7e4bb16d7fe1ab015421174ab747406c"
+    }
+};
+
+let CKB_RPC_URL = NETWORK_CONFIG.testnet.CKB_RPC_URL;
+let COMMITMENT_CODE_HASH = NETWORK_CONFIG.testnet.COMMITMENT_CODE_HASH;
 
 document.addEventListener('DOMContentLoaded', async () => {
+    const networkSelect = document.getElementById('network-select');
+    if (networkSelect) {
+        networkSelect.addEventListener('change', (e) => {
+            const network = e.target.value;
+            if (NETWORK_CONFIG[network]) {
+                CKB_RPC_URL = NETWORK_CONFIG[network].CKB_RPC_URL;
+                COMMITMENT_CODE_HASH = NETWORK_CONFIG[network].COMMITMENT_CODE_HASH;
+            }
+        });
+    }
+
     const parseBtn = document.getElementById('parse-btn');
     if (parseBtn) {
         parseBtn.addEventListener('click', parseCommitmentLock);

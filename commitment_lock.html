@@ -22,6 +22,13 @@
                     </div>
                     <div class="card-body">
                         <div class="input-group">
+                            <label for="network-select">Network</label>
+                            <select id="network-select">
+                                <option value="testnet">Testnet</option>
+                                <option value="mainnet" selected>Mainnet</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
                             <label for="tx-hash">Transaction Hash (hex)</label>
                             <div class="input-with-button">
                                 <input type="text" id="tx-hash" placeholder="Enter the transaction hash in hex format...">
